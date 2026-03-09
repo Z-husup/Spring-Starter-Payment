@@ -1,36 +1,53 @@
 package com.example.springstarterpayment.gateway;
 
 import java.util.List;
+import java.util.Map;
 
 public interface PaymentGateway {
 
-    CheckoutSession createCheckoutSession(CreateCheckoutSessionCommand command);
+    PaymentResponse createPayment(PaymentRequest request);
 
-    PaymentSession getSession(String sessionId);
+    PaymentStatusResponse getPaymentStatus(String paymentId);
 
-    record CreateCheckoutSessionCommand(
+    record PaymentRequest(
+            long amountCents,
             String currency,
+            PaymentType type,
+            String description,
+            String customerReference,
+            List<LineItem> items,
+            Map<String,String> metadata,
             String successUrl,
-            String cancelUrl,
-            List<LineItem> lineItems,
-            String clientReferenceId
+            String cancelUrl
     ) {}
 
     record LineItem(
             String name,
-            String imageUrl,
             long unitAmountCents,
             long quantity
     ) {}
 
-    record CheckoutSession(
-            String sessionId,
-            String checkoutUrl
+    record PaymentResponse(
+            String paymentId,
+            String providerReference,
+            String redirectUrl
     ) {}
 
-    record PaymentSession(
-            String sessionId,
-            String paymentStatus,
-            String clientReferenceId
+    record PaymentStatusResponse(
+            String paymentId,
+            PaymentStatus status
     ) {}
+
+    enum PaymentStatus {
+        CREATED,
+        PENDING,
+        PAID,
+        FAILED,
+        CANCELED
+    }
+
+    enum PaymentType {
+        ONE_TIME,
+        SUBSCRIPTION
+    }
 }

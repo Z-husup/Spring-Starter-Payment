@@ -1,62 +1,72 @@
 package com.example.springstarterpayment.gateway;
 
 import com.example.springstarterpayment.exception.PaymentIntegrationException;
+import com.example.springstarterpayment.properties.PaymentProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.net.http.*;
 import java.nio.charset.StandardCharsets;
 
 public class StripePaymentGateway implements PaymentGateway {
 
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final HttpClient httpClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final String secretKey;
+    private final PaymentProperties properties;
 
-    public StripePaymentGateway(String secretKey) {
-        this.secretKey = secretKey;
+    public StripePaymentGateway(PaymentProperties properties) {
+
+        this.properties = properties;
+
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(
+                        java.time.Duration.ofMillis(
+                                properties.getStripe().getConnectTimeout()))
+                .build();
     }
 
     @Override
-    public CheckoutSession createCheckoutSession(CreateCheckoutSessionCommand command) {
+    public PaymentResponse createPayment(PaymentRequest request) {
 
-        if (secretKey == null || secretKey.isBlank()) {
+        String secretKey = properties.getStripe().getSecretKey();
+
+        if(secretKey == null || secretKey.isBlank()){
             throw new PaymentIntegrationException("Stripe secret key not configured");
         }
+
+        String currency = request.currency() != null
+                ? request.currency()
+                : properties.getStripe().getDefaultCurrency();
+
+        String mode = request.type() == PaymentType.SUBSCRIPTION
+                ? "subscription"
+                : "payment";
 
         StringBuilder body = new StringBuilder();
 
         append(body,"payment_method_types[0]","card");
-        append(body,"mode","payment");
-        append(body,"success_url",command.successUrl());
-        append(body,"cancel_url",command.cancelUrl());
-        append(body,"client_reference_id",command.clientReferenceId());
+        append(body,"mode",mode);
+        append(body,"success_url",request.successUrl());
+        append(body,"cancel_url",request.cancelUrl());
+        append(body,"client_reference_id",request.customerReference());
 
-        for(int i=0;i<command.lineItems().size();i++){
+        for(int i=0;i<request.items().size();i++){
 
-            LineItem item = command.lineItems().get(i);
+            LineItem item = request.items().get(i);
 
-            append(body,"line_items["+i+"][price_data][currency]",command.currency());
+            append(body,"line_items["+i+"][price_data][currency]",currency);
             append(body,"line_items["+i+"][price_data][unit_amount]",
                     String.valueOf(item.unitAmountCents()));
             append(body,"line_items["+i+"][price_data][product_data][name]",
                     item.name());
-
-            if(item.imageUrl()!=null && !item.imageUrl().isBlank()){
-                append(body,"line_items["+i+"][price_data][product_data][images][0]",
-                        item.imageUrl());
-            }
-
             append(body,"line_items["+i+"][quantity]",
                     String.valueOf(item.quantity()));
         }
 
         String response = sendStripeRequest(
-                "https://api.stripe.com/v1/checkout/sessions",
+                properties.getStripe().getApiBase() + "/v1/checkout/sessions",
                 "POST",
                 body.toString()
         );
@@ -65,7 +75,8 @@ public class StripePaymentGateway implements PaymentGateway {
 
             JsonNode json = objectMapper.readTree(response);
 
-            return new CheckoutSession(
+            return new PaymentResponse(
+                    json.path("id").asText(),
                     json.path("id").asText(),
                     json.path("url").asText()
             );
@@ -76,10 +87,10 @@ public class StripePaymentGateway implements PaymentGateway {
     }
 
     @Override
-    public PaymentSession getSession(String sessionId) {
+    public PaymentStatusResponse getPaymentStatus(String paymentId) {
 
         String response = sendStripeRequest(
-                "https://api.stripe.com/v1/checkout/sessions/"+encode(sessionId),
+                properties.getStripe().getApiBase() + "/v1/checkout/sessions/" + encode(paymentId),
                 "GET",
                 null
         );
@@ -88,11 +99,15 @@ public class StripePaymentGateway implements PaymentGateway {
 
             JsonNode json = objectMapper.readTree(response);
 
-            return new PaymentSession(
-                    json.path("id").asText(),
-                    json.path("payment_status").asText(),
-                    json.path("client_reference_id").asText()
-            );
+            String stripeStatus = json.path("payment_status").asText();
+
+            PaymentStatus status = switch (stripeStatus) {
+                case "paid" -> PaymentStatus.PAID;
+                case "unpaid" -> PaymentStatus.PENDING;
+                default -> PaymentStatus.CREATED;
+            };
+
+            return new PaymentStatusResponse(paymentId,status);
 
         } catch(Exception ex){
             throw new PaymentIntegrationException("Stripe session parse error",ex);
@@ -105,7 +120,8 @@ public class StripePaymentGateway implements PaymentGateway {
 
             HttpRequest.Builder builder = HttpRequest.newBuilder()
                     .uri(URI.create(url))
-                    .header("Authorization","Bearer "+secretKey);
+                    .header("Authorization",
+                            "Bearer " + properties.getStripe().getSecretKey());
 
             if("POST".equalsIgnoreCase(method)){
 
