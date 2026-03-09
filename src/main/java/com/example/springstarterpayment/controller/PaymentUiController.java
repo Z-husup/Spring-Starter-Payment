@@ -24,7 +24,9 @@ public class PaymentUiController {
     }
 
     @GetMapping("${payment.ui.path:/payment}")
-    public ResponseEntity<String> openPaymentPage() {
+    public ResponseEntity<Void> openPaymentPage() {
+
+        System.out.println("openPaymentPage");
 
         PaymentGateway.PaymentRequest request =
                 new PaymentGateway.PaymentRequest(
@@ -33,16 +35,13 @@ public class PaymentUiController {
                         PaymentGateway.PaymentType.ONE_TIME,
                         properties.getUi().getDescription(),
                         "demo-user",
-                        List.of(
-                                new PaymentGateway.LineItem(
-                                        properties.getUi().getDescription(),
-                                        properties.getUi().getAmountCents(),
-                                        1
-                                )
-                        ),
+                        List.of(new PaymentGateway.LineItem(
+                                properties.getUi().getDescription(),
+                                properties.getUi().getAmountCents(),
+                                1)),
                         Map.of(),
-                        "http://localhost:8080/payment-success",
-                        "http://localhost:8080/payment-cancel"
+                        "http://localhost:8080/success",
+                        "http://localhost:8080/cancel"
                 );
 
         PaymentGateway.PaymentResponse response =
