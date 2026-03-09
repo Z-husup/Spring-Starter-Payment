@@ -5,9 +5,17 @@ import java.util.Map;
 
 public interface PaymentGateway {
 
+    PaymentProvider provider();
+
     PaymentResponse createPayment(PaymentRequest request);
 
     PaymentStatusResponse getPaymentStatus(String paymentId);
+
+    enum PaymentProvider {
+        STRIPE,
+        YOOKASSA,
+        FREEDOMPAY
+    }
 
     record PaymentRequest(
             long amountCents,

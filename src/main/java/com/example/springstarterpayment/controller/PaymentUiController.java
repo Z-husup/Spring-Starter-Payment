@@ -2,46 +2,73 @@ package com.example.springstarterpayment.controller;
 
 import com.example.springstarterpayment.gateway.PaymentGateway;
 import com.example.springstarterpayment.properties.PaymentProperties;
+import com.example.springstarterpayment.properties.PaymentUiProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @RestController
 public class PaymentUiController {
 
-    private final PaymentGateway gateway;
-    private final PaymentProperties properties;
+    private final Map<PaymentGateway.PaymentProvider, PaymentGateway> gateways;
+    private final PaymentUiProperties properties;
 
-    public PaymentUiController(PaymentGateway gateway,
-                               PaymentProperties properties) {
-        this.gateway = gateway;
+    public PaymentUiController(
+            List<PaymentGateway> gatewayList,
+            PaymentUiProperties properties) {
+
         this.properties = properties;
+
+        this.gateways = gatewayList.stream()
+                .collect(Collectors.toMap(
+                        PaymentGateway::provider,
+                        Function.identity()
+                ));
     }
 
     @GetMapping("${payment.ui.path:/payment}")
-    public ResponseEntity<Void> openPaymentPage() {
+    public List<String> getAvailableProviders() {
 
-        System.out.println("openPaymentPage");
+        return gateways.keySet()
+                .stream()
+                .map(Enum::name)
+                .toList();
+    }
+
+    @PostMapping("${payment.ui.path:/payment}/{provider}")
+    public ResponseEntity<Void> pay(
+            @PathVariable PaymentGateway.PaymentProvider provider) {
+
+        PaymentGateway gateway = gateways.get(provider);
+
+        if(gateway == null){
+            return ResponseEntity.notFound().build();
+        }
 
         PaymentGateway.PaymentRequest request =
                 new PaymentGateway.PaymentRequest(
-                        properties.getUi().getAmountCents(),
-                        properties.getStripe().getDefaultCurrency(),
+                        properties.getAmountCents(),
+                        properties.getCurrency(),
                         PaymentGateway.PaymentType.ONE_TIME,
-                        properties.getUi().getDescription(),
+                        properties.getDescription(),
                         "demo-user",
                         List.of(new PaymentGateway.LineItem(
-                                properties.getUi().getDescription(),
-                                properties.getUi().getAmountCents(),
-                                1)),
+                                properties.getDescription(),
+                                properties.getAmountCents(),
+                                1
+                        )),
                         Map.of(),
-                        "http://localhost:8080/success",
-                        "http://localhost:8080/cancel"
+                        properties.getSuccessUrl(),
+                        properties.getCancelUrl()
                 );
 
         PaymentGateway.PaymentResponse response =
