@@ -1,14 +1,13 @@
 package com.example.springstarterpayment.controller;
 
 import com.example.springstarterpayment.gateway.PaymentGateway;
-import com.example.springstarterpayment.properties.PaymentProperties;
 import com.example.springstarterpayment.properties.PaymentUiProperties;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.List;
@@ -35,8 +34,25 @@ public class PaymentUiController {
                 ));
     }
 
+    /**
+     * UI page with payment method selection
+     */
     @GetMapping("${payment.ui.path:/payment}")
-    public List<String> getAvailableProviders() {
+    public ResponseEntity<Resource> paymentPage() {
+
+        ClassPathResource resource =
+                new ClassPathResource("payment-ui/payment-methods.html");
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_HTML)
+                .body(resource);
+    }
+
+    /**
+     * Returns active payment providers
+     */
+    @GetMapping("${payment.ui.path:/payment}/providers")
+    public List<String> providers() {
 
         return gateways.keySet()
                 .stream()
@@ -44,13 +60,16 @@ public class PaymentUiController {
                 .toList();
     }
 
-    @PostMapping("${payment.ui.path:/payment}/{provider}")
+    /**
+     * Starts payment with selected provider
+     */
+    @GetMapping("${payment.ui.path:/payment}/{provider}")
     public ResponseEntity<Void> pay(
             @PathVariable PaymentGateway.PaymentProvider provider) {
 
         PaymentGateway gateway = gateways.get(provider);
 
-        if(gateway == null){
+        if (gateway == null) {
             return ResponseEntity.notFound().build();
         }
 
@@ -74,7 +93,8 @@ public class PaymentUiController {
         PaymentGateway.PaymentResponse response =
                 gateway.createPayment(request);
 
-        return ResponseEntity.status(HttpStatus.FOUND)
+        return ResponseEntity
+                .status(HttpStatus.FOUND)
                 .location(URI.create(response.redirectUrl()))
                 .build();
     }

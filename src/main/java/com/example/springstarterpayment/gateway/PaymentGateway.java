@@ -13,9 +13,12 @@ public interface PaymentGateway {
 
     enum PaymentProvider {
         STRIPE,
+        PAYPAL,
+        CLOUDPAYMENTS,
         YOOKASSA,
         FREEDOMPAY
     }
+
 
     record PaymentRequest(
             long amountCents,

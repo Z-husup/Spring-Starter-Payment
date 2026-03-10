@@ -1,1 +1,6 @@
 com.example.springstarterpayment.autoconfigure.PaymentUiAutoConfiguration
+com.example.springstarterpayment.autoconfigure.stripe.StripeAutoConfiguration
+com.example.springstarterpayment.autoconfigure.freedom_pay.FreedomPayAutoConfiguration
+com.example.springstarterpayment.autoconfigure.yoo_kassa.YooKassaAutoConfiguration
+com.example.springstarterpayment.autoconfigure.paypal.PaypalAutoConfiguration
+com.example.springstarterpayment.autoconfigure.cloudpayments.CloudPaymentsAutoConfiguration

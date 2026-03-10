@@ -2,16 +2,10 @@ package com.example.springstarterpayment.gateway.stripe;
 
 import com.example.springstarterpayment.exception.PaymentIntegrationException;
 import com.example.springstarterpayment.gateway.AbstractHttpPaymentGateway;
-import com.example.springstarterpayment.gateway.PaymentGateway;
-import com.example.springstarterpayment.properties.PaymentProperties;
 import com.example.springstarterpayment.properties.stripe.StripeProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import tools.jackson.databind.JsonNode;
 
-import java.net.URI;
-import java.net.URLEncoder;
 import java.net.http.*;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 public class StripePaymentGateway extends AbstractHttpPaymentGateway {
