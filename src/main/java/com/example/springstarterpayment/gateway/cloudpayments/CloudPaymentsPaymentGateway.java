@@ -16,19 +16,21 @@ public class CloudPaymentsPaymentGateway extends AbstractHttpPaymentGateway {
     private final CloudPaymentsProperties properties;
 
     public CloudPaymentsPaymentGateway(CloudPaymentsProperties properties) {
-        super(properties.getConnectTimeout());
+        super(properties.getConnectTimeout(), properties.getReadTimeout());
         this.properties = properties;
     }
 
     @Override
     public PaymentResponse createPayment(PaymentRequest request) {
 
+        validatePaymentRequest(request);
+
         String redirect =
                 "https://widget.cloudpayments.ru/" +
-                        "?publicId="+properties.getPublicId() +
+                        "?publicId="+encode(properties.getPublicId()) +
                         "&amount="+request.amountCents()/100.0 +
-                        "&currency="+properties.getCurrency() +
-                        "&invoiceId="+ UUID.randomUUID();
+                        "&currency="+encode(properties.getCurrency()) +
+                        "&invoiceId="+ encode(UUID.randomUUID().toString());
 
         return new PaymentResponse(
                 UUID.randomUUID().toString(),

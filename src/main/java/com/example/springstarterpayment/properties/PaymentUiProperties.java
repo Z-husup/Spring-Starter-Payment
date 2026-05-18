@@ -1,22 +1,32 @@
 package com.example.springstarterpayment.properties;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
+@Validated
 @ConfigurationProperties(prefix = "payment.ui")
 public class PaymentUiProperties {
 
     private boolean enabled = false;
 
+    @NotBlank
     private String path = "/payment";
 
+    @Min(1)
     private long amountCents = 1000;
 
+    @NotBlank
     private String currency = "usd";
 
+    @NotBlank
     private String description = "Test payment";
 
+    @NotBlank
     private String successUrl = "http://localhost:8080/success";
 
+    @NotBlank
     private String cancelUrl = "http://localhost:8080/cancel";
 
     public boolean isEnabled() {

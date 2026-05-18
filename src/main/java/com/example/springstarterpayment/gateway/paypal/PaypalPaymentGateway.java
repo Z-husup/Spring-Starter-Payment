@@ -6,6 +6,8 @@ import com.example.springstarterpayment.exception.PaymentIntegrationException;
 import com.example.springstarterpayment.properties.paypal.PaypalProperties;
 import tools.jackson.databind.JsonNode;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
@@ -21,12 +23,14 @@ public class PaypalPaymentGateway extends AbstractHttpPaymentGateway {
     private final PaypalProperties properties;
 
     public PaypalPaymentGateway(PaypalProperties properties) {
-        super(properties.getConnectTimeout());
+        super(properties.getConnectTimeout(), properties.getReadTimeout());
         this.properties = properties;
     }
 
     @Override
     public PaymentResponse createPayment(PaymentRequest request) {
+
+        validatePaymentRequest(request);
 
         try {
 
@@ -38,7 +42,7 @@ public class PaypalPaymentGateway extends AbstractHttpPaymentGateway {
                             Map.of(
                                     "amount", Map.of(
                                             "currency_code", properties.getCurrency(),
-                                            "value", String.valueOf(request.amountCents()/100.0)
+                                            "value", formatAmount(request.amountCents())
                                     )
                             )
                     ),
@@ -146,5 +150,11 @@ public class PaypalPaymentGateway extends AbstractHttpPaymentGateway {
         }catch(Exception ex){
             throw new PaymentIntegrationException("PayPal token parse error",ex);
         }
+    }
+
+    private String formatAmount(long amountCents) {
+        return BigDecimal.valueOf(amountCents, 2)
+                .setScale(2, RoundingMode.UNNECESSARY)
+                .toPlainString();
     }
 }

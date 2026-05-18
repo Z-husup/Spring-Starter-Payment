@@ -3,13 +3,14 @@ package com.example.springstarterpayment.controller;
 import com.example.springstarterpayment.gateway.PaymentGateway;
 import com.example.springstarterpayment.properties.PaymentUiProperties;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -38,14 +39,16 @@ public class PaymentUiController {
      * UI page with payment method selection
      */
     @GetMapping("${payment.ui.path:/payment}")
-    public ResponseEntity<Resource> paymentPage() {
+    public ResponseEntity<String> paymentPage() throws IOException {
 
         ClassPathResource resource =
                 new ClassPathResource("payment-ui/payment-methods.html");
+        String html = resource.getContentAsString(StandardCharsets.UTF_8)
+                .replace("__PAYMENT_UI_PATH__", properties.getPath());
 
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_HTML)
-                .body(resource);
+                .body(html);
     }
 
     /**

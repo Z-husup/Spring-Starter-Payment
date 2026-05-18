@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Bean;
 public class StripeAutoConfiguration {
 
     @Bean
+    @ConditionalOnMissingBean(name = "stripeGateway")
     public PaymentGateway stripeGateway(StripeProperties properties){
         return new StripePaymentGateway(properties);
     }

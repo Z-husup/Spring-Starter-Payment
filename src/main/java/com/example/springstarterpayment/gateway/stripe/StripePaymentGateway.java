@@ -18,12 +18,14 @@ public class StripePaymentGateway extends AbstractHttpPaymentGateway {
     private final StripeProperties properties;
 
     public StripePaymentGateway(StripeProperties properties) {
-        super(properties.getConnectTimeout());
+        super(properties.getConnectTimeout(), properties.getReadTimeout());
         this.properties = properties;
     }
 
     @Override
     public PaymentResponse createPayment(PaymentRequest request) {
+
+        validatePaymentRequest(request);
 
         String currency = request.currency() != null
                 ? request.currency()

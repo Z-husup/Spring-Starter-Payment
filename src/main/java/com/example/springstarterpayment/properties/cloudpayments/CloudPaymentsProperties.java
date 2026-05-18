@@ -1,20 +1,29 @@
 package com.example.springstarterpayment.properties.cloudpayments;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
+@Validated
 @ConfigurationProperties(prefix = "payment.cloudpayments")
 public class CloudPaymentsProperties {
 
+    @NotBlank
     private String publicId;
 
     private String apiSecret;
 
+    @NotBlank
     private String apiBase = "https://api.cloudpayments.ru";
 
+    @NotBlank
     private String currency = "RUB";
 
+    @Min(1)
     private int connectTimeout = 5000;
 
+    @Min(1)
     private int readTimeout = 10000;
 
     public String getPublicId() {

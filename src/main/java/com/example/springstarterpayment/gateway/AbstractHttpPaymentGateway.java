@@ -10,18 +10,21 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 public abstract class AbstractHttpPaymentGateway implements PaymentGateway {
 
     protected final HttpClient httpClient;
     protected final ObjectMapper objectMapper = new ObjectMapper();
+    private final int readTimeout;
 
-    protected AbstractHttpPaymentGateway(int connectTimeout) {
+    protected AbstractHttpPaymentGateway(int connectTimeout, int readTimeout) {
 
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofMillis(connectTimeout))
                 .build();
+        this.readTimeout = readTimeout;
     }
 
     protected String sendRequest(
@@ -34,7 +37,8 @@ public abstract class AbstractHttpPaymentGateway implements PaymentGateway {
         try{
 
             HttpRequest.Builder builder = HttpRequest.newBuilder()
-                    .uri(URI.create(url));
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofMillis(readTimeout));
 
             if(headers != null){
                 headers.forEach(builder::header);
@@ -42,7 +46,9 @@ public abstract class AbstractHttpPaymentGateway implements PaymentGateway {
 
             if("POST".equalsIgnoreCase(method)){
 
-                builder.header("Content-Type","application/x-www-form-urlencoded");
+                if (!hasHeader(headers, "Content-Type")) {
+                    builder.header("Content-Type","application/x-www-form-urlencoded");
+                }
 
                 builder.POST(HttpRequest.BodyPublishers.ofString(body));
 
@@ -69,5 +75,42 @@ public abstract class AbstractHttpPaymentGateway implements PaymentGateway {
 
     protected String encode(String value){
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    protected void validatePaymentRequest(PaymentRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Payment request must not be null");
+        }
+        if (request.amountCents() <= 0) {
+            throw new IllegalArgumentException("Payment amount must be greater than zero");
+        }
+        if (isBlank(request.currency())) {
+            throw new IllegalArgumentException("Payment currency must not be blank");
+        }
+        if (isBlank(request.successUrl()) || isBlank(request.cancelUrl())) {
+            throw new IllegalArgumentException("Payment successUrl and cancelUrl must not be blank");
+        }
+
+        List<LineItem> items = request.items();
+        if (items == null || items.isEmpty()) {
+            throw new IllegalArgumentException("Payment must contain at least one line item");
+        }
+        for (LineItem item : items) {
+            if (item == null || isBlank(item.name())) {
+                throw new IllegalArgumentException("Payment line item name must not be blank");
+            }
+            if (item.unitAmountCents() <= 0 || item.quantity() <= 0) {
+                throw new IllegalArgumentException("Payment line item amount and quantity must be greater than zero");
+            }
+        }
+    }
+
+    private boolean hasHeader(Map<String,String> headers, String name) {
+        return headers != null && headers.keySet().stream()
+                .anyMatch(header -> header.equalsIgnoreCase(name));
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }

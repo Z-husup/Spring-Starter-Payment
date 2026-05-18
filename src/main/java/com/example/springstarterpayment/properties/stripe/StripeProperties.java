@@ -1,13 +1,19 @@
 package com.example.springstarterpayment.properties.stripe;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
+@Validated
 @ConfigurationProperties(prefix = "payment.stripe")
 public class StripeProperties {
 
-    /**
+     /**
      * Stripe secret API key.
      */
+    @NotBlank
     private String secretKey;
 
     /**
@@ -20,9 +26,10 @@ public class StripeProperties {
      */
     private String webhookSecret;
 
-    /**
+     /**
      * Stripe API base URL.
      */
+    @NotBlank
     private String apiBase = "https://api.stripe.com";
 
     /**
@@ -30,35 +37,42 @@ public class StripeProperties {
      */
     private String apiVersion;
 
-    /**
+     /**
      * Default currency.
      */
+    @NotBlank
     private String defaultCurrency = "usd";
 
-    /**
+     /**
      * HTTP connect timeout (ms).
      */
+    @Min(1)
     private int connectTimeout = 5000;
 
-    /**
+     /**
      * HTTP read timeout (ms).
      */
+    @Min(1)
     private int readTimeout = 10000;
 
+    @Valid
     private Retry retry = new Retry();
 
+    @Valid
     private Connect connect = new Connect();
 
     public static class Retry {
 
-        /**
+         /**
          * Max retry attempts for Stripe requests.
          */
+        @Min(0)
         private int maxAttempts = 3;
 
-        /**
+         /**
          * Backoff time in milliseconds.
          */
+        @Min(0)
         private long backoffMillis = 500;
 
         public int getMaxAttempts() {

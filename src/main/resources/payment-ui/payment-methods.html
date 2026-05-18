@@ -114,7 +114,9 @@
 
 <script>
 
-    fetch("/payment/providers")
+    const paymentUiPath = "__PAYMENT_UI_PATH__";
+
+    fetch(paymentUiPath + "/providers")
     .then(r => r.json())
     .then(providers => {
 
@@ -129,7 +131,7 @@
             div.innerText = "Pay with " + formatName(p);
 
             div.onclick = () => {
-                window.location = "/payment/" + p;
+                window.location = paymentUiPath + "/" + p;
             };
 
             container.appendChild(div);
