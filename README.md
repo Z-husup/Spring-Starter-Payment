@@ -294,7 +294,3 @@ Current limitations:
 - limited CloudPayments status handling
 
 For production use, add provider webhook handling, idempotency, structured logging, metrics, audit storage, and stronger provider-specific error mapping.
-
-## License
-
-Add a license before publishing this repository publicly.
